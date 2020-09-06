@@ -1,8 +1,10 @@
-install:
-	go get -u
+all: install build run
 
 build:
 	go build -o bin/appmanager/main cmd/appmanager/main.go
+
+install:
+	go get -u -v -f all
 
 run:
 	go run cmd/appmanager/main.go

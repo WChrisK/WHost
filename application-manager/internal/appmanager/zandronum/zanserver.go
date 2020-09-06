@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	appmanager ".."
 )
@@ -46,6 +47,7 @@ func CreateServer(args *appmanager.ServerRuntimeArgs) (*ZanServerInfo, error) {
 
 	cmd := &exec.Cmd{
 		Path: executablePath,
+		Dir: filepath.Dir(executablePath),
 		Args: createCommandLineArgs(args),
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
