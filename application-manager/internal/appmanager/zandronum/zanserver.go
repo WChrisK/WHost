@@ -1,6 +1,7 @@
 package zandronum
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -12,33 +13,46 @@ type ZanServerInfo struct {
 	Cvars map[string]string `json:"cvars"`
 	PlayerCount int `json:"playerCount"`
 	Port int `json:"port"`
+	cmd *exec.Cmd
 }
 
-func (s *ZanServerInfo) GetCvars() map[string]string {
-	return s.Cvars
+func addFileArg(argFlag string, wadPath string, files []string, commandLineArgs []string) []string {
+	for _, fileName := range files {
+		filePath := fileName
+		if len(wadPath) != 0 {
+			filePath = fmt.Sprintf(`"%s/%s"`, wadPath, fileName)
+		}
+		commandLineArgs = append(commandLineArgs, argFlag, filePath)
+	}
+
+	return commandLineArgs
 }
 
-func (s *ZanServerInfo) GetPlayerCount() int {
-	return s.PlayerCount
+func createCommandLineArgs(args *appmanager.ServerRuntimeArgs) []string {
+	var commandLineArgs []string
+	commandLineArgs = addFileArg("-iwad", args.WadPath, []string{args.Iwad}, commandLineArgs)
+	commandLineArgs = addFileArg("-file", args.WadPath, args.Files, commandLineArgs)
+	commandLineArgs = addFileArg("-optfile", args.WadPath, args.Optfiles, commandLineArgs)
+	commandLineArgs = append(commandLineArgs, args.Args...)
+
+	return commandLineArgs
 }
 
-func (s *ZanServerInfo) GetPort() int {
-	return s.Port
-}
-
-func CreateServer(args *appmanager.RuntimeArgs) (*ZanServerInfo, error) {
-	path, err := exec.LookPath(args.Executable)
+func CreateServer(args *appmanager.ServerRuntimeArgs) (*ZanServerInfo, error) {
+	executablePath, err := exec.LookPath(args.Executable)
 	if err != nil {
-		log.Fatal("Unable to find executable at: ", path, " - Error: ", err)
+		log.Fatal("Unable to find executable at: ", executablePath, " - Error: ", err)
 	}
 
 	cmd := &exec.Cmd{
-		Path: path,
-		Args: []string{},
+		Path: executablePath,
+		Args: createCommandLineArgs(args),
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 		Stdin: os.Stdin,
 	}
+
+	// TODO: Wrap reader around stdin/out!
 
 	if err := cmd.Run(); err != nil {
 		log.Fatal("Could not run command")
@@ -46,5 +60,6 @@ func CreateServer(args *appmanager.RuntimeArgs) (*ZanServerInfo, error) {
 
 	return &ZanServerInfo{
 		Cvars: make(map[string]string),
+		cmd: cmd,
 	}, nil
 }

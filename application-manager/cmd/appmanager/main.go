@@ -15,7 +15,7 @@ import (
 
 var server appmanager.AppServerInfo
 
-func readArgs() *appmanager.RuntimeArgs {
+func readArgs() *appmanager.ServerRuntimeArgs {
 	var data string
 	flag.StringVar(&data, "data", "", "The base64 encoded json data")
 	flag.Parse()
@@ -29,7 +29,7 @@ func readArgs() *appmanager.RuntimeArgs {
 		log.Fatal("Unexpected error when decoding runtime args:", err)
 	}
 
-	args := &appmanager.RuntimeArgs{}
+	args := &appmanager.ServerRuntimeArgs{}
 	if err := json.Unmarshal(decodedData, args); err != nil {
 		log.Fatal("Unable to read command line arguments:", err)
 	}
@@ -37,7 +37,7 @@ func readArgs() *appmanager.RuntimeArgs {
 	return args
 }
 
-func createServer(runtimeArgs *appmanager.RuntimeArgs) {
+func createServer(runtimeArgs *appmanager.ServerRuntimeArgs) {
 	createdServer, err := zandronum.CreateServer(runtimeArgs)
 	if err != nil {
 		log.Fatal("Unable to create server:", err)
