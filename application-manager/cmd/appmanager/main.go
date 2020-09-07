@@ -1,14 +1,16 @@
 package main
 
 import (
+	"../../internal/appmanager"
+	"../../internal/appmanager/zandronum"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
-
-	"../../internal/appmanager"
-	"../../internal/appmanager/zandronum"
+	"os"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -46,18 +48,37 @@ func createServer(runtimeArgs *appmanager.ServerRuntimeArgs) {
 	server = createdServer
 }
 
-func status(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+func status(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(server); err != nil {
-		log.Println("Error writing status:", err)
+		log.Fatal("Error writing status:", err)
 	}
+}
+
+func shutdown(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	log.Println("Shutdown request received, terminating server")
+
+	w.Header().Set("Content-Type", "application/json")
+	_, err := fmt.Fprintf(w, "{\"success\":true}")
+	if err != nil {
+		log.Println("Error writing shutdown message to host:", err)
+	}
+
+	// A hacky and terrible way of making sure the write goes through. This
+	// should be done better later on.
+	go func() {
+		<-(time.NewTimer(3 * time.Second)).C
+		os.Exit(0)
+	}()
 }
 
 func runEndpoints() {
 	router := httprouter.New()
 	router.GET("/status", status)
+	router.POST("/shutdown", shutdown)
 
-	log.Fatal(http.ListenAndServe(":8088", nil))
+	// We only want queries done by our local machine.
+	log.Fatal(http.ListenAndServe("localhost:8080", router))
 }
 
 func main() {
